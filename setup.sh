@@ -1,5 +1,26 @@
 #!/bin/bash
+echo "Select an option:"
+echo "1. Continue configuring Bash"
+echo "2. Change shell"
+read -p "Enter the number corresponding to your choice: " option_choice
 
+if [ "$option_choice" -eq 1 ]; then
+    # Continue with the remaining setup
+    echo "Continuing with Bash configuration..."
+
+elif [ "$option_choice" -eq 2 ]; then
+    # Change shell
+    ./change-shell.sh  # Assuming change-shell.sh is in the same directory
+    exit  # Exit the script after executing change-shell.sh
+else
+    echo "Invalid option. Exiting."
+fi
+# Detect the user who called the script (even if called with sudo)
+REAL_USER=$(who am i | awk '{print $1}')
+
+# Use the home directory of the calling user
+HOME=$(eval echo ~$REAL_USER)
+echo -e "default user is $HOME"
 bashrc_file="$HOME/.bashrc"
 
 # Check if ~/.bashrc exists
@@ -138,19 +159,16 @@ command_exists() {
 
 # Function to update font settings for GNOME Terminal
 update_gnome_terminal() {
-  profile_id=$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d "'")
-  gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$profile_id/ font 'MesloLGM Nerd Font 12'
-  gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$profile_id/ use-system-font false
+    gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$default_profile_id/ font 'MesloLGM Nerd Font Mono 12'
+    gsettings set org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$default_profile_id/ use-system-font false
+    echo "Font settings updated for the default profile."
 }
-
 
 update_xfce_terminal() {
   xfce_config_file="$HOME/.config/xfce4/terminal/terminalrc"
   font_name="MesloLGM Nerd Font Mono 12"
-  
   # Backup the existing configuration file
   cp "$xfce_config_file" "$xfce_config_file.backup"
-
   # Set the font property
   sed -i "s@^FontName=.*@FontName=$font_name@" "$xfce_config_file"
 }
@@ -159,7 +177,7 @@ update_xfce_terminal() {
 install_font() {
   font_file="font/MesloLGMNerdFontMono-Regular.ttf"
   install_path="$HOME/.fonts"
-
+echo -e "Creating fonts path @ $install_path"
   # Create the font directory if it doesn't exist
   mkdir -p "$install_path"
 
@@ -198,8 +216,21 @@ install_font
 # Install zoxide
 install_zoxide
 
+# Find the path to Bash using whereis
+bash_path=$(whereis bash | awk '{print $2}')
+
+# Check if Bash path is found
+if [ -n "$bash_path" ]; then
+    # Set Bash as the login shell
+    chsh -s "$bash_path"
+    echo "Login shell set to: $bash_path"
+else
+    echo "Bash executable not found. Please install Bash or adjust the script."
+fi
+#To revert back to zsh chsh -s $(which zsh)
+
 if linkConfig; then
-    echo -e "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
+    echo -e "${GREEN}Done!\nrestart your shell/system to see the changes.${RC}"
 else
     echo -e "${RED}Something went wrong!${RC}"
 fi
